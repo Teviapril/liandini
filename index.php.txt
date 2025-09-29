@@ -1,0 +1,437 @@
+<?php
+// KONFIGURASI DATABASE
+ $host = "localhost";
+ $user = "root";
+ $pass = "";
+ $dbname = "db_smk_purbalingga";
+
+// Buat koneksi
+ $conn = new mysqli($host, $user, $pass, $dbname);
+
+// Cek koneksi
+if ($conn->connect_error) {
+    die("Koneksi gagal: " . $conn->connect_error);
+}
+
+// Buat database jika belum ada
+ $sql = "CREATE DATABASE IF NOT EXISTS $dbname";
+if ($conn->query($sql) === TRUE) {
+    $conn->select_db($dbname);
+    
+    // Buat tabel jika belum ada
+    $sql = "CREATE TABLE IF NOT EXISTS siswa (
+        id INT(11) PRIMARY KEY AUTO_INCREMENT,
+        nis VARCHAR(20) NOT NULL UNIQUE,
+        nama VARCHAR(100) NOT NULL,
+        tempat_lahir VARCHAR(50) NOT NULL,
+        tanggal_lahir DATE NOT NULL,
+        jenis_kelamin ENUM('L', 'P') NOT NULL,
+        alamat TEXT NOT NULL,
+        jurusan VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )";
+    
+    if (!$conn->query($sql)) {
+        echo "Error creating table: " . $conn->error;
+    }
+}
+
+// PROSES SIMPAN DATA
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
+    $nis = $_POST['nis'];
+    $nama = $_POST['nama'];
+    $tempat_lahir = $_POST['tempat_lahir'];
+    $tanggal_lahir = $_POST['tanggal_lahir'];
+    $jenis_kelamin = $_POST['jenis_kelamin'];
+    $alamat = $_POST['alamat'];
+    $jurusan = $_POST['jurusan'];
+    
+    // Validasi NIS sudah ada
+    $cek_nis = "SELECT * FROM siswa WHERE nis = '$nis'";
+    $result = $conn->query($cek_nis);
+    
+    if ($result->num_rows > 0) {
+        $pesan = "NIS sudah terdaftar!";
+        $tipe_pesan = "error";
+    } else {
+        // Simpan data
+        $sql = "INSERT INTO siswa (nis, nama, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, jurusan) 
+                VALUES ('$nis', '$nama', '$tempat_lahir', '$tanggal_lahir', '$jenis_kelamin', '$alamat', '$jurusan')";
+        
+        if ($conn->query($sql) === TRUE) {
+            $pesan = "Data siswa berhasil disimpan!";
+            $tipe_pesan = "sukses";
+        } else {
+            $pesan = "Error: " . $sql . "<br>" . $conn->error;
+            $tipe_pesan = "error";
+        }
+    }
+}
+
+// PROSES HAPUS DATA
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
+    
+    // Hapus data
+    $sql = "DELETE FROM siswa WHERE id = $id";
+    
+    if ($conn->query($sql) === TRUE) {
+        $pesan = "Data siswa berhasil dihapus!";
+        $tipe_pesan = "sukses";
+    } else {
+        $pesan = "Error deleting record: " . $conn->error;
+        $tipe_pesan = "error";
+    }
+}
+
+// AMBIL DATA SISWA
+ $sql = "SELECT * FROM siswa ORDER BY created_at DESC";
+ $result = $conn->query($sql);
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Entry Siswa Baru - SMKN 1 Purbalingga</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a237e, #3949ab);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .form-section, .data-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h3 {
+            color: #1a237e;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #3949ab;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.2);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #1a237e, #3949ab);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #1a237e;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .btn-hapus {
+            background: #e53935;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn-hapus:hover {
+            background: #c62828;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #1a237e;
+            color: white;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .pesan {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .pesan.sukses {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .pesan.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 992px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            h2 {
+                font-size: 1.2rem;
+            }
+            
+            .form-section, .data-section {
+                padding: 15px;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SMK NEGERI 1 PURBALINGGA</h1>
+            <h2>DATA ENTRY SISWA BARU</h2>
+        </header>
+
+        <div class="content">
+            <div class="form-section">
+                <h3>Formulir Pendaftaran Siswa Baru</h3>
+                
+                <?php if (isset($pesan)): ?>
+                    <div class="pesan <?= $tipe_pesan ?>">
+                        <?= $pesan ?>
+                    </div>
+                <?php endif; ?>
+                
+                <form method="post" action="">
+                    <div class="form-group">
+                        <label>NIS:</label>
+                        <input type="text" name="nis" required maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nama Lengkap:</label>
+                        <input type="text" name="nama" required maxlength="100">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tempat Lahir:</label>
+                        <input type="text" name="tempat_lahir" required maxlength="50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tanggal Lahir:</label>
+                        <input type="date" name="tanggal_lahir" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Jenis Kelamin:</label>
+                        <select name="jenis_kelamin" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="L">Laki-laki</option>
+                            <option value="P">Perempuan</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alamat:</label>
+                        <textarea name="alamat" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Jurusan:</label>
+                        <select name="jurusan" required>
+                            <option value="">-- Pilih Jurusan --</option>
+                            <option value="Teknik Komputer dan Jaringan">Teknik Komputer dan Jaringan</option>
+                            <option value="Multimedia">Multimedia</option>
+                            <option value="Akuntansi">Akuntansi</option>
+                            <option value="Administrasi Perkantoran">Administrasi Perkantoran</option>
+                            <option value="Tata Boga">Tata Boga</option>
+                            <option value="Tata Busana">Tata Busana</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" name="simpan" class="btn">Simpan Data</button>
+                </form>
+            </div>
+
+            <div class="data-section">
+                <h3>Data Siswa Terdaftar</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>NIS</th>
+                                <th>Nama</th>
+                                <th>Tempat, Tanggal Lahir</th>
+                                <th>Jenis Kelamin</th>
+                                <th>Jurusan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            if ($result->num_rows > 0) {
+                                $no = 1;
+                                while($row = $result->fetch_assoc()) {
+                                    echo "<tr>
+                                        <td>".$no."</td>
+                                        <td>".$row['nis']."</td>
+                                        <td>".$row['nama']."</td>
+                                        <td>".$row['tempat_lahir'].", ".date('d/m/Y', strtotime($row['tanggal_lahir']))."</td>
+                                        <td>".($row['jenis_kelamin'] == 'L' ? 'Laki-laki' : 'Perempuan')."</td>
+                                        <td>".$row['jurusan']."</td>
+                                        <td>
+                                            <a href='?hapus=".$row['id']."' class='btn-hapus' onclick='return confirm(\"Yakin ingin menghapus data ini?\")'>Hapus</a>
+                                        </td>
+                                    </tr>";
+                                    $no++;
+                                }
+                            } else {
+                                echo "<tr><td colspan='7'>Belum ada data siswa</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; <?= date('Y') ?> SMK Negeri 1 Purbalingga. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
