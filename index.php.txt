@@ -1,94 +1,3 @@
-<?php
-// KONFIGURASI DATABASE
- $host = "localhost";
- $user = "root";
- $pass = "";
- $dbname = "db_smk_purbalingga";
-
-// Buat koneksi
- $conn = new mysqli($host, $user, $pass, $dbname);
-
-// Cek koneksi
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
-
-// Buat database jika belum ada
- $sql = "CREATE DATABASE IF NOT EXISTS $dbname";
-if ($conn->query($sql) === TRUE) {
-    $conn->select_db($dbname);
-    
-    // Buat tabel jika belum ada
-    $sql = "CREATE TABLE IF NOT EXISTS siswa (
-        id INT(11) PRIMARY KEY AUTO_INCREMENT,
-        nis VARCHAR(20) NOT NULL UNIQUE,
-        nama VARCHAR(100) NOT NULL,
-        tempat_lahir VARCHAR(50) NOT NULL,
-        tanggal_lahir DATE NOT NULL,
-        jenis_kelamin ENUM('L', 'P') NOT NULL,
-        alamat TEXT NOT NULL,
-        jurusan VARCHAR(50) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )";
-    
-    if (!$conn->query($sql)) {
-        echo "Error creating table: " . $conn->error;
-    }
-}
-
-// PROSES SIMPAN DATA
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
-    $nis = $_POST['nis'];
-    $nama = $_POST['nama'];
-    $tempat_lahir = $_POST['tempat_lahir'];
-    $tanggal_lahir = $_POST['tanggal_lahir'];
-    $jenis_kelamin = $_POST['jenis_kelamin'];
-    $alamat = $_POST['alamat'];
-    $jurusan = $_POST['jurusan'];
-    
-    // Validasi NIS sudah ada
-    $cek_nis = "SELECT * FROM siswa WHERE nis = '$nis'";
-    $result = $conn->query($cek_nis);
-    
-    if ($result->num_rows > 0) {
-        $pesan = "NIS sudah terdaftar!";
-        $tipe_pesan = "error";
-    } else {
-        // Simpan data
-        $sql = "INSERT INTO siswa (nis, nama, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, jurusan) 
-                VALUES ('$nis', '$nama', '$tempat_lahir', '$tanggal_lahir', '$jenis_kelamin', '$alamat', '$jurusan')";
-        
-        if ($conn->query($sql) === TRUE) {
-            $pesan = "Data siswa berhasil disimpan!";
-            $tipe_pesan = "sukses";
-        } else {
-            $pesan = "Error: " . $sql . "<br>" . $conn->error;
-            $tipe_pesan = "error";
-        }
-    }
-}
-
-// PROSES HAPUS DATA
-if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
-    
-    // Hapus data
-    $sql = "DELETE FROM siswa WHERE id = $id";
-    
-    if ($conn->query($sql) === TRUE) {
-        $pesan = "Data siswa berhasil dihapus!";
-        $tipe_pesan = "sukses";
-    } else {
-        $pesan = "Error deleting record: " . $conn->error;
-        $tipe_pesan = "error";
-    }
-}
-
-// AMBIL DATA SISWA
- $sql = "SELECT * FROM siswa ORDER BY created_at DESC";
- $result = $conn->query($sql);
-?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -96,6 +5,7 @@ if (isset($_GET['hapus'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Entry Siswa Baru - SMKN 1 Purbalingga</title>
     <style>
+        /* CSS sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -238,6 +148,8 @@ if (isset($_GET['hapus'])) {
             text-decoration: none;
             font-size: 14px;
             transition: background 0.3s;
+            cursor: pointer;
+            border: none;
         }
         
         .btn-hapus:hover {
@@ -328,36 +240,32 @@ if (isset($_GET['hapus'])) {
             <div class="form-section">
                 <h3>Formulir Pendaftaran Siswa Baru</h3>
                 
-                <?php if (isset($pesan)): ?>
-                    <div class="pesan <?= $tipe_pesan ?>">
-                        <?= $pesan ?>
-                    </div>
-                <?php endif; ?>
+                <div id="pesan-container"></div>
                 
-                <form method="post" action="">
+                <form id="form-siswa">
                     <div class="form-group">
-                        <label>NIS:</label>
-                        <input type="text" name="nis" required maxlength="20">
+                        <label for="nis">NIS:</label>
+                        <input type="text" id="nis" name="nis" required maxlength="20">
                     </div>
                     
                     <div class="form-group">
-                        <label>Nama Lengkap:</label>
-                        <input type="text" name="nama" required maxlength="100">
+                        <label for="nama">Nama Lengkap:</label>
+                        <input type="text" id="nama" name="nama" required maxlength="100">
                     </div>
                     
                     <div class="form-group">
-                        <label>Tempat Lahir:</label>
-                        <input type="text" name="tempat_lahir" required maxlength="50">
+                        <label for="tempat_lahir">Tempat Lahir:</label>
+                        <input type="text" id="tempat_lahir" name="tempat_lahir" required maxlength="50">
                     </div>
                     
                     <div class="form-group">
-                        <label>Tanggal Lahir:</label>
-                        <input type="date" name="tanggal_lahir" required>
+                        <label for="tanggal_lahir">Tanggal Lahir:</label>
+                        <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
                     </div>
                     
                     <div class="form-group">
-                        <label>Jenis Kelamin:</label>
-                        <select name="jenis_kelamin" required>
+                        <label for="jenis_kelamin">Jenis Kelamin:</label>
+                        <select id="jenis_kelamin" name="jenis_kelamin" required>
                             <option value="">-- Pilih --</option>
                             <option value="L">Laki-laki</option>
                             <option value="P">Perempuan</option>
@@ -365,13 +273,13 @@ if (isset($_GET['hapus'])) {
                     </div>
                     
                     <div class="form-group">
-                        <label>Alamat:</label>
-                        <textarea name="alamat" rows="3" required></textarea>
+                        <label for="alamat">Alamat:</label>
+                        <textarea id="alamat" name="alamat" rows="3" required></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label>Jurusan:</label>
-                        <select name="jurusan" required>
+                        <label for="jurusan">Jurusan:</label>
+                        <select id="jurusan" name="jurusan" required>
                             <option value="">-- Pilih Jurusan --</option>
                             <option value="Teknik Komputer dan Jaringan">Teknik Komputer dan Jaringan</option>
                             <option value="Multimedia">Multimedia</option>
@@ -382,7 +290,7 @@ if (isset($_GET['hapus'])) {
                         </select>
                     </div>
                     
-                    <button type="submit" name="simpan" class="btn">Simpan Data</button>
+                    <button type="submit" class="btn">Simpan Data</button>
                 </form>
             </div>
 
@@ -401,28 +309,10 @@ if (isset($_GET['hapus'])) {
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php
-                            if ($result->num_rows > 0) {
-                                $no = 1;
-                                while($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                        <td>".$no."</td>
-                                        <td>".$row['nis']."</td>
-                                        <td>".$row['nama']."</td>
-                                        <td>".$row['tempat_lahir'].", ".date('d/m/Y', strtotime($row['tanggal_lahir']))."</td>
-                                        <td>".($row['jenis_kelamin'] == 'L' ? 'Laki-laki' : 'Perempuan')."</td>
-                                        <td>".$row['jurusan']."</td>
-                                        <td>
-                                            <a href='?hapus=".$row['id']."' class='btn-hapus' onclick='return confirm(\"Yakin ingin menghapus data ini?\")'>Hapus</a>
-                                        </td>
-                                    </tr>";
-                                    $no++;
-                                }
-                            } else {
-                                echo "<tr><td colspan='7'>Belum ada data siswa</td></tr>";
-                            }
-                            ?>
+                        <tbody id="tabel-siswa">
+                            <tr>
+                                <td colspan="7">Memuat data...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -430,8 +320,126 @@ if (isset($_GET['hapus'])) {
         </div>
 
         <footer>
-            <p>&copy; <?= date('Y') ?> SMK Negeri 1 Purbalingga. All rights reserved.</p>
+            <p>&copy; 2023 SMK Negeri 1 Purbalingga. All rights reserved.</p>
         </footer>
     </div>
+
+    <script>
+        // Inisialisasi data siswa dari localStorage
+        let siswa = JSON.parse(localStorage.getItem('siswa')) || [];
+        
+        // Tampilkan data siswa saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            tampilkanDataSiswa();
+        });
+        
+        // Tangani submit form
+        document.getElementById('form-siswa').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Ambil data dari form
+            const nis = document.getElementById('nis').value;
+            const nama = document.getElementById('nama').value;
+            const tempat_lahir = document.getElementById('tempat_lahir').value;
+            const tanggal_lahir = document.getElementById('tanggal_lahir').value;
+            const jenis_kelamin = document.getElementById('jenis_kelamin').value;
+            const alamat = document.getElementById('alamat').value;
+            const jurusan = document.getElementById('jurusan').value;
+            
+            // Validasi NIS sudah ada
+            const cekNis = siswa.find(s => s.nis === nis);
+            if (cekNis) {
+                tampilkanPesan('NIS sudah terdaftar!', 'error');
+                return;
+            }
+            
+            // Buat objek siswa baru
+            const siswaBaru = {
+                id: Date.now(),
+                nis,
+                nama,
+                tempat_lahir,
+                tanggal_lahir,
+                jenis_kelamin,
+                alamat,
+                jurusan
+            };
+            
+            // Tambahkan ke array
+            siswa.push(siswaBaru);
+            
+            // Simpan ke localStorage
+            localStorage.setItem('siswa', JSON.stringify(siswa));
+            
+            // Tampilkan pesan sukses
+            tampilkanPesan('Data siswa berhasil disimpan!', 'sukses');
+            
+            // Reset form
+            this.reset();
+            
+            // Tampilkan data terbaru
+            tampilkanDataSiswa();
+        });
+        
+        // Fungsi untuk menampilkan pesan
+        function tampilkanPesan(pesan, tipe) {
+            const pesanContainer = document.getElementById('pesan-container');
+            pesanContainer.innerHTML = `<div class="pesan ${tipe}">${pesan}</div>`;
+            
+            // Hapus pesan setelah 3 detik
+            setTimeout(() => {
+                pesanContainer.innerHTML = '';
+            }, 3000);
+        }
+        
+        // Fungsi untuk menampilkan data siswa
+        function tampilkanDataSiswa() {
+            const tabelSiswa = document.getElementById('tabel-siswa');
+            
+            if (siswa.length === 0) {
+                tabelSiswa.innerHTML = '<tr><td colspan="7">Belum ada data siswa</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            siswa.forEach((s, index) => {
+                const tanggalLahirFormatted = new Date(s.tanggal_lahir).toLocaleDateString('id-ID');
+                const jenisKelaminText = s.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan';
+                
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${s.nis}</td>
+                        <td>${s.nama}</td>
+                        <td>${s.tempat_lahir}, ${tanggalLahirFormatted}</td>
+                        <td>${jenisKelaminText}</td>
+                        <td>${s.jurusan}</td>
+                        <td>
+                            <button class="btn-hapus" onclick="hapusData(${s.id})">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tabelSiswa.innerHTML = html;
+        }
+        
+        // Fungsi untuk menghapus data
+        function hapusData(id) {
+            if (confirm('Yakin ingin menghapus data ini?')) {
+                // Filter data siswa kecuali yang dihapus
+                siswa = siswa.filter(s => s.id !== id);
+                
+                // Simpan kembali ke localStorage
+                localStorage.setItem('siswa', JSON.stringify(siswa));
+                
+                // Tampilkan pesan sukses
+                tampilkanPesan('Data siswa berhasil dihapus!', 'sukses');
+                
+                // Tampilkan data terbaru
+                tampilkanDataSiswa();
+            }
+        }
+    </script>
 </body>
 </html>
